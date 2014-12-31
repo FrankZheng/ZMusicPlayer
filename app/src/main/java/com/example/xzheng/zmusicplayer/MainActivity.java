@@ -198,6 +198,7 @@ public class MainActivity extends Activity implements SongDownloaderHandler {
         String actionTitle = "";
         PlayerState state = getCurrentState();
 
+        //configure button text with different state
         if(state == PlayerState.initialize) {
             actionTitle = "Download";
         } else if(state == PlayerState.downloading) {
