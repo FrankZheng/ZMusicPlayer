@@ -43,6 +43,7 @@ public class MainActivity extends Activity {
     private Button _actionButton;
     private TextView _songTitleText;
     private MediaPlayer _mediaPlayer;
+    private Song _song;
 
 
     @Override
@@ -54,8 +55,11 @@ public class MainActivity extends Activity {
         _progressText = (TextView)findViewById(R.id.progressText);
         _actionButton = (Button)findViewById(R.id.actionButton);
 
+        //_song = createMyOwnSong();
+        _song = createExternalSong();
+
         //setup ui controls
-        _songTitleText.setText(getSongUrl());
+        _songTitleText.setText(_song.getUrl());
         configActionButton();
     }
 
@@ -107,14 +111,26 @@ public class MainActivity extends Activity {
 
     }
 
-    private String getSongUrl() {
-        final String songFolder = "files";
-        final String songFileName = "1.mp3";
-        return SONG_SERVER_URL + "/" + songFolder + "/" + songFileName;
+    private Song createMyOwnSong() {
+        Song song = new Song();
+        final String songName = "1.mp3";
+        song.setUrl(SONG_SERVER_URL + "/" + "files" + "/" + songName);
+        song.setLocalFilePath(getSongLocalFilePath(songName));
+        song.setTitle(songName);
+        return song;
     }
 
-    private String getSongLocalFilePath() {
-        return Environment.getExternalStorageDirectory() + "/" + "1.mp3";
+    private Song createExternalSong() {
+        Song song = new Song();
+        final String songName = "3246857839526428.mp3";
+        song.setUrl("http://m1.music.126.net/yyA6KLa7VUYC0EFwVe-fzA==/" + songName);
+        song.setLocalFilePath(getSongLocalFilePath(songName));
+        song.setTitle(songName);
+        return song;
+    }
+
+    private String getSongLocalFilePath(String filename) {
+        return Environment.getExternalStorageDirectory() + "/" + filename;
     }
 
     private MediaPlayer getMediaPlayer() {
@@ -126,14 +142,13 @@ public class MainActivity extends Activity {
 
     private void downloadTheSong() {
         final DownloadTask downloadTask = new DownloadTask(this);
-        final String songUrl = getSongUrl();
-        downloadTask.execute(songUrl);
+        downloadTask.execute(_song);
         setCurrentState(PlayerState.downloading);
     }
 
     private void playTheSong() {
         MediaPlayer mediaPlayer = getMediaPlayer();
-        String filePath = getSongLocalFilePath();
+        String filePath = _song.getLocalFilePath();
         try {
             mediaPlayer.setDataSource(filePath);
             mediaPlayer.prepare();
@@ -179,6 +194,7 @@ public class MainActivity extends Activity {
         } else {
             Log.e(LOG_TAG, "unknown state: " + state);
         }
+        // TODO: string to to be localized
         _actionButton.setText(actionTitle);
     }
 
@@ -186,7 +202,7 @@ public class MainActivity extends Activity {
         setCurrentState(PlayerState.downloaded);
     }
 
-    private class DownloadTask extends AsyncTask<String, Integer, String> {
+    private class DownloadTask extends AsyncTask<Song, Integer, String> {
 
         private Context context;
         private PowerManager.WakeLock mWakeLock;
@@ -229,12 +245,13 @@ public class MainActivity extends Activity {
 
 
         @Override
-        protected String doInBackground(String... sUrl) {
+        protected String doInBackground(Song... songs) {
             InputStream input = null;
             OutputStream output = null;
             HttpURLConnection connection = null;
             try {
-                URL url = new URL(sUrl[0]);
+                Song song = songs[0];
+                URL url = new URL(song.getUrl());
                 connection = (HttpURLConnection) url.openConnection();
                 connection.connect();
 
@@ -251,7 +268,7 @@ public class MainActivity extends Activity {
 
                 // download the file
                 input = connection.getInputStream();
-                String filePath = getSongLocalFilePath();
+                String filePath = song.getLocalFilePath();
                 output = new FileOutputStream(filePath);
 
                 byte data[] = new byte[4096];

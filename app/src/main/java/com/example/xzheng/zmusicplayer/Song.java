@@ -6,6 +6,8 @@ package com.example.xzheng.zmusicplayer;
 public class Song {
     private String _url;
     private String _title;
+    private String _localFilePath;
+
     public Song() {
 
     }
@@ -25,6 +27,10 @@ public class Song {
     public void setTitle(String title) {
         _title = title;
     }
+
+    public String getLocalFilePath() { return _localFilePath;}
+
+    public void setLocalFilePath(String filePath) { _localFilePath = filePath;}
 
 
 }
