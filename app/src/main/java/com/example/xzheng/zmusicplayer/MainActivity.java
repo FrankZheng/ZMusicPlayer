@@ -28,13 +28,21 @@ public class MainActivity extends Activity {
     private static final String LOG_TAG = "MainActivity";
     private static final String SONG_SERVER_URL = "http://ec2-54-169-150-55.ap-southeast-1.compute.amazonaws.com:3001";
 
+    private enum PlayerState {
+        initialize,
+        downloading,
+        downloading_paused,
+        downloaded,
+        playing,
+        stopped,
+    };
+
+    private PlayerState _currentState = PlayerState.initialize;
 
     private TextView _progressText;
     private Button _actionButton;
     private TextView _songTitleText;
-    private int _currentState = 0;
     private MediaPlayer _mediaPlayer;
-
 
 
     @Override
@@ -48,9 +56,7 @@ public class MainActivity extends Activity {
 
         //setup ui controls
         _songTitleText.setText(getSongUrl());
-        _actionButton.setText("Download");
-
-
+        configActionButton();
     }
 
 
@@ -77,27 +83,24 @@ public class MainActivity extends Activity {
     }
 
     public void onActionButtonClick(View view) {
-        Log.d(LOG_TAG, "onActionButtonClick " + _currentState);
-        if(_currentState == 0) {
+        Log.d(LOG_TAG, "onActionButtonClick " + getCurrentState());
+        PlayerState state = getCurrentState();
+
+        if(state == PlayerState.initialize) {
             Log.d(LOG_TAG, "download the song");
-            final DownloadTask downloadTask = new DownloadTask(this);
-            final String songUrl = getSongUrl();
-            downloadTask.execute(songUrl);
-            setCurrentState(1);
-        } else if(_currentState == 1) {
+            downloadTheSong();
+        } else if(state == PlayerState.downloading) {
             Log.d(LOG_TAG, "pause the downloading");
             //TODO: implement the pause/resume
-        } else if(_currentState == 2) {
+        } else if(state == PlayerState.downloading_paused) {
             Log.d(LOG_TAG, "resume the downloading");
             //TODO: implement the pause/resume
-        } else if(_currentState == 3) {
+        } else if(state == PlayerState.downloaded || state == PlayerState.stopped) {
             Log.d(LOG_TAG, "play the song");
             playTheSong();
-            setCurrentState(4);
-        } else if(_currentState == 4) {
+        } else if(state == PlayerState.playing) {
             Log.d(LOG_TAG, "stop the song");
             stopTheSong();
-            setCurrentState(3);
         } else {
             Log.e(LOG_TAG, "unsupported state " + _currentState);
         }
@@ -121,6 +124,13 @@ public class MainActivity extends Activity {
         return _mediaPlayer;
     }
 
+    private void downloadTheSong() {
+        final DownloadTask downloadTask = new DownloadTask(this);
+        final String songUrl = getSongUrl();
+        downloadTask.execute(songUrl);
+        setCurrentState(PlayerState.downloading);
+    }
+
     private void playTheSong() {
         MediaPlayer mediaPlayer = getMediaPlayer();
         String filePath = getSongLocalFilePath();
@@ -128,6 +138,7 @@ public class MainActivity extends Activity {
             mediaPlayer.setDataSource(filePath);
             mediaPlayer.prepare();
             mediaPlayer.start();
+            setCurrentState(PlayerState.playing);
         } catch (IOException e) {
             e.printStackTrace();
         } catch (IllegalStateException e1) {
@@ -139,30 +150,40 @@ public class MainActivity extends Activity {
         MediaPlayer mediaPlayer = getMediaPlayer();
         mediaPlayer.stop();
         mediaPlayer.reset();
+        setCurrentState(PlayerState.stopped);
     }
 
-    private int getCurrentState() {
+    private PlayerState getCurrentState() {
         return _currentState;
     }
-    private void setCurrentState(int state) {
+
+    private void setCurrentState(PlayerState state) {
         _currentState = state;
         configActionButton();
     }
 
     private void configActionButton() {
         String actionTitle = "";
-        if(_currentState == 0) {
+        PlayerState state = getCurrentState();
+
+        if(state == PlayerState.initialize) {
             actionTitle = "Download";
-        } else if(_currentState == 1) {
+        } else if(state == PlayerState.downloading) {
             actionTitle = "Pause";
-        } else if(_currentState == 2) {
+        } else if(state == PlayerState.downloading_paused) {
             actionTitle = "Resume";
-        } else if(_currentState == 3) {
+        } else if(state == PlayerState.downloaded || state == PlayerState.stopped) {
             actionTitle = "Play";
-        } else if(_currentState == 4) {
+        } else if(state == PlayerState.playing) {
             actionTitle = "Stop";
+        } else {
+            Log.e(LOG_TAG, "unknown state: " + state);
         }
         _actionButton.setText(actionTitle);
+    }
+
+    private void onSongDownloaded() {
+        setCurrentState(PlayerState.downloaded);
     }
 
     private class DownloadTask extends AsyncTask<String, Integer, String> {
@@ -184,7 +205,6 @@ public class MainActivity extends Activity {
             mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
                     getClass().getName());
             mWakeLock.acquire();
-            //mProgressDialog.show();
         }
 
         @Override
@@ -203,8 +223,7 @@ public class MainActivity extends Activity {
                 Toast.makeText(context, "Download error: " + result, Toast.LENGTH_LONG).show();
             } else {
                 //Toast.makeText(context, "File downloaded", Toast.LENGTH_SHORT).show();
-                //update the state
-                setCurrentState(3);
+                onSongDownloaded();
             }
         }
 
