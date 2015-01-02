@@ -99,7 +99,7 @@ public class MainActivity extends Activity implements SongDownloaderHandler {
             pauseTheSongDownloading();
         } else if(state == PlayerState.downloading_paused) {
             Log.d(LOG_TAG, "resume the downloading");
-            //TODO: implement the pause/resume
+            resumeTheSongDownloading();
         } else if(state == PlayerState.downloaded || state == PlayerState.stopped) {
             Log.d(LOG_TAG, "play the song");
             playTheSong();
@@ -109,7 +109,6 @@ public class MainActivity extends Activity implements SongDownloaderHandler {
         } else {
             Log.e(LOG_TAG, "unsupported state " + _currentState);
         }
-
     }
 
     @Override
@@ -173,14 +172,17 @@ public class MainActivity extends Activity implements SongDownloaderHandler {
     }
 
     private void downloadTheSong() {
-        SongDownloader downloader = getSongDownloader();
-        downloader.start();
+        getSongDownloader().start();
         setCurrentState(PlayerState.downloading);
     }
 
     private void pauseTheSongDownloading() {
-        SongDownloader downloader = getSongDownloader();
-        downloader.pause();
+        getSongDownloader().pause();
+    }
+
+    private void resumeTheSongDownloading() {
+        getSongDownloader().resume();
+        setCurrentState(PlayerState.downloading);
     }
 
     private void playTheSong() {
