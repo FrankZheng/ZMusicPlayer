@@ -1,3 +1,3 @@
-1. refactor code to create a SongDownloader to do download staff.
-3. add md5 check after file downloaded.
-2. add pause function, and can resume the song download to relauch the app again.
+1. Refactor code to create a SongDownloader to do download staff.
+3. Add md5 check after file downloaded.
+2. Add pause/resume function.
