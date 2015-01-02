@@ -44,6 +44,7 @@ public class MainActivity extends Activity implements SongDownloaderHandler {
     private TextView _songTitleText;
     private MediaPlayer _mediaPlayer;
     private Song _song;
+    private SongDownloader _songDownloader;
 
 
     @Override
@@ -55,8 +56,8 @@ public class MainActivity extends Activity implements SongDownloaderHandler {
         _progressText = (TextView)findViewById(R.id.progressText);
         _actionButton = (Button)findViewById(R.id.actionButton);
 
-        //_song = createMyOwnSong();
-        _song = createExternalSong();
+        _song = createMyOwnSong();
+        //_song = createExternalSong();
 
         //setup ui controls
         _songTitleText.setText(_song.getUrl());
@@ -95,7 +96,7 @@ public class MainActivity extends Activity implements SongDownloaderHandler {
             downloadTheSong();
         } else if(state == PlayerState.downloading) {
             Log.d(LOG_TAG, "pause the downloading");
-            //TODO: implement the pause/resume
+            pauseTheSongDownloading();
         } else if(state == PlayerState.downloading_paused) {
             Log.d(LOG_TAG, "resume the downloading");
             //TODO: implement the pause/resume
@@ -126,12 +127,19 @@ public class MainActivity extends Activity implements SongDownloaderHandler {
         Toast.makeText(this, "Download error: " + errorInfo, Toast.LENGTH_LONG).show();
     }
 
+    @Override
+    public void onSongDownloadPaused() {
+        setCurrentState(PlayerState.downloading_paused);
+    }
+
     private Song createMyOwnSong() {
         Song song = new Song();
         final String songName = "1.mp3";
         song.setUrl(SONG_SERVER_URL + "/" + "files" + "/" + songName);
         song.setLocalFilePath(getSongLocalFilePath(songName));
         song.setTitle(songName);
+        song.setFileSize(8434209);
+        song.setMD5("300043aa2014bf07c1018ef946b274a2");
         return song;
     }
 
@@ -141,6 +149,8 @@ public class MainActivity extends Activity implements SongDownloaderHandler {
         song.setUrl("http://m1.music.126.net/yyA6KLa7VUYC0EFwVe-fzA==/" + songName);
         song.setLocalFilePath(getSongLocalFilePath(songName));
         song.setTitle(songName);
+        song.setFileSize(8125145);
+        song.setMD5("63eba7a4548e7557b37d9c0573a3f175");
         return song;
     }
 
@@ -155,12 +165,22 @@ public class MainActivity extends Activity implements SongDownloaderHandler {
         return _mediaPlayer;
     }
 
+    private SongDownloader getSongDownloader() {
+        if(_songDownloader == null) {
+            _songDownloader = new SongDownloader(_song, this, this);
+        }
+        return _songDownloader;
+    }
+
     private void downloadTheSong() {
-        //final DownloadTask downloadTask = new DownloadTask(this);
-        //downloadTask.execute(_song);
-        final SongDownloader downloader = new SongDownloader(_song, this, this);
+        SongDownloader downloader = getSongDownloader();
         downloader.start();
         setCurrentState(PlayerState.downloading);
+    }
+
+    private void pauseTheSongDownloading() {
+        SongDownloader downloader = getSongDownloader();
+        downloader.pause();
     }
 
     private void playTheSong() {

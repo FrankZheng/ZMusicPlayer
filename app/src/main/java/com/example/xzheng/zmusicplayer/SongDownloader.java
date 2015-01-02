@@ -3,8 +3,10 @@ package com.example.xzheng.zmusicplayer;
 import android.content.Context;
 import android.os.AsyncTask;
 import android.os.PowerManager;
+import android.util.Log;
 import android.widget.Toast;
 
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -16,6 +18,7 @@ import java.net.URL;
  * Created by xzheng on 14/12/31.
  */
 public class SongDownloader extends AsyncTask<Song, Integer, String> {
+    private static final String TAG = "SongDownloader";
 
     private Context _context;
     private SongDownloaderHandler _downloadHandler;
@@ -30,6 +33,22 @@ public class SongDownloader extends AsyncTask<Song, Integer, String> {
 
     public void start() {
         execute(_song);
+    }
+
+    public void pause() {
+        //cancel the download
+        this.cancel(true);
+    }
+
+    public void resume() {
+        //start a new one
+        //however, need some work to check the existed size
+    }
+
+    @Override
+    protected void onCancelled(String result) {
+        super.onCancelled();
+        _downloadHandler.onSongDownloadPaused();
     }
 
     @Override
@@ -51,26 +70,46 @@ public class SongDownloader extends AsyncTask<Song, Integer, String> {
             Song song = songs[0];
             URL url = new URL(song.getUrl());
             connection = (HttpURLConnection) url.openConnection();
+
+            String fileLocalPath = song.getLocalFilePath();
+            File file = new File(fileLocalPath);
+            long existsLength = 0;
+
+            if(file.exists()) {
+                long length = file.length();
+                Log.i(TAG, "file exists, length is " + length);
+                if(length < song.getFileSize()) {
+                    //we start download from last position
+                    existsLength = length;
+                    connection.setRequestProperty("Range", "bytes=" + existsLength + "-");
+                    output = new FileOutputStream(file, true);
+                }
+
+            }
+
             connection.connect();
 
-            // expect HTTP 200 OK, so we don't mistakenly save error report
+            // expect HTTP 200 OK or 206 partial content, so we don't mistakenly save error report
             // instead of the file
-            if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+            if (connection.getResponseCode() != HttpURLConnection.HTTP_OK &&
+                    connection.getResponseCode() != HttpURLConnection.HTTP_PARTIAL) {
                 return "Server returned HTTP " + connection.getResponseCode()
                         + " " + connection.getResponseMessage();
             }
 
             // this will be useful to display download percentage
             // might be -1: server did not report the length
-            int fileLength = connection.getContentLength();
+            //int fileLength = connection.getContentLength();
 
             // download the file
             input = connection.getInputStream();
-            String filePath = song.getLocalFilePath();
-            output = new FileOutputStream(filePath);
+
+            if(output == null) {
+                output = new FileOutputStream(file);
+            }
 
             byte data[] = new byte[4096];
-            long total = 0;
+            long total = existsLength;
             int count;
             while ((count = input.read(data)) != -1) {
                 // allow canceling with back button
@@ -80,10 +119,14 @@ public class SongDownloader extends AsyncTask<Song, Integer, String> {
                 }
                 total += count;
                 // publishing the progress....
-                if (fileLength > 0) // only if total length is known
-                    publishProgress((int) (total * 100 / fileLength));
+                publishProgress((int) (total * 100 / song.getFileSize()));
                 output.write(data, 0, count);
             }
+            //String md5 = MD5.calculateMD5(file);
+            if(!MD5.checkMD5(song.getMD5(), file)) {
+                return "Mismatched MD5";
+            }
+
         } catch (Exception e) {
             return e.toString();
         } finally {

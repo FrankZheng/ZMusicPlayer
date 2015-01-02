@@ -7,6 +7,8 @@ public class Song {
     private String _url;
     private String _title;
     private String _localFilePath;
+    private long _fileSize;
+    private String _md5;
 
     public Song() {
 
@@ -31,6 +33,14 @@ public class Song {
     public String getLocalFilePath() { return _localFilePath;}
 
     public void setLocalFilePath(String filePath) { _localFilePath = filePath;}
+
+    public long getFileSize() { return _fileSize; }
+
+    public void setFileSize(long size) { _fileSize = size; }
+
+    public String getMD5() { return _md5; }
+
+    public void setMD5(String md5) { _md5 = md5; }
 
 
 }

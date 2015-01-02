@@ -10,4 +10,6 @@ public interface SongDownloaderHandler {
     public void onSongDownloadProgressUpdated(int progress);
 
     public void onSongDownloadError(String errorInfo);
+
+    public void onSongDownloadPaused();
 }
