@@ -75,6 +75,8 @@ public class SongDownloader {
                 Song song = songs[0];
                 URL url = new URL(song.getUrl());
                 connection = (HttpURLConnection) url.openConnection();
+                connection.setConnectTimeout(5000);
+                //connection.setReadTimeout(2000);
 
                 String fileLocalPath = song.getLocalFilePath();
                 File file = new File(fileLocalPath);

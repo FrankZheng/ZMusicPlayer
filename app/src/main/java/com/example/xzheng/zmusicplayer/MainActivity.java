@@ -2,7 +2,10 @@ package com.example.xzheng.zmusicplayer;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.media.MediaPlayer;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -48,6 +51,7 @@ public class MainActivity extends Activity implements SongDownloaderHandler {
     private MediaPlayer _mediaPlayer;
     private Song _song;
     private SongDownloader _songDownloader;
+
 
 
     @Override
@@ -160,7 +164,8 @@ public class MainActivity extends Activity implements SongDownloaderHandler {
 
     @Override
     public void onSongDownloadError(String errorInfo) {
-        Toast.makeText(this, "Download error: " + errorInfo, Toast.LENGTH_LONG).show();
+        //Toast.makeText(this, "Download error: " + errorInfo, Toast.LENGTH_LONG).show();
+        setCurrentState(PlayerState.downloading_paused);
     }
 
     @Override
@@ -210,16 +215,24 @@ public class MainActivity extends Activity implements SongDownloaderHandler {
         return _songDownloader;
     }
 
-    private void downloadTheSong() {
-        //check current connectivity status
+    private boolean checkNetworkStatus(boolean showAlert) {
         if(!NetworkUtils.isWiFiConnected()) {
             //notify user to turn on wifi, or failed to start to download
-            AlertDialog.Builder builder = new AlertDialog.Builder(this);
-            builder.setMessage("Please connect WiFi network first.");
-            builder.setPositiveButton("OK", null);
-            AlertDialog dialog = builder.create();
-            dialog.show();
-        } else {
+            if(showAlert) {
+                AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                builder.setMessage("Please connect WiFi network first.");
+                builder.setPositiveButton("OK", null);
+                AlertDialog dialog = builder.create();
+                dialog.show();
+            }
+            return false;
+        }
+        return true;
+    }
+
+    private void downloadTheSong() {
+        //check current connectivity status
+       if(checkNetworkStatus(true)) {
             //start the download
             getSongDownloader().start();
             setCurrentState(PlayerState.downloading);
@@ -231,8 +244,10 @@ public class MainActivity extends Activity implements SongDownloaderHandler {
     }
 
     private void resumeTheSongDownloading() {
-        getSongDownloader().resume();
-        setCurrentState(PlayerState.downloading);
+        if(checkNetworkStatus(true)) {
+            getSongDownloader().resume();
+            setCurrentState(PlayerState.downloading);
+        }
     }
 
     private void playTheSong() {

@@ -23,6 +23,6 @@ public class NetworkUtils {
 
     public static boolean isWiFiConnected() {
         NetworkInfo activeNetwork = getActiveNetworkInfo();
-        return activeNetwork.getType() == ConnectivityManager.TYPE_WIFI;
+        return activeNetwork != null && activeNetwork.getType() == ConnectivityManager.TYPE_WIFI;
     }
 }
