@@ -1,8 +1,11 @@
 package com.example.xzheng.zmusicplayer;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
 import android.media.MediaPlayer;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
@@ -64,6 +67,36 @@ public class MainActivity extends Activity implements SongDownloaderHandler {
         configActionButton();
     }
 
+    @Override
+    protected void onStart() {
+        super.onStart();
+        Log.d(LOG_TAG, "onStart");
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Log.d(LOG_TAG, "onResume");
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        Log.d(LOG_TAG, "onPause");
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        Log.d(LOG_TAG, "onStop");
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        Log.d(LOG_TAG, "onDestroy");
+    }
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -88,8 +121,10 @@ public class MainActivity extends Activity implements SongDownloaderHandler {
     }
 
     public void onActionButtonClick(View view) {
-        Log.d(LOG_TAG, "onActionButtonClick " + getCurrentState());
+        Log.d(LOG_TAG, "onActionButtonClick");
+
         PlayerState state = getCurrentState();
+        Log.d(LOG_TAG, "current state is " + state);
 
         if(state == PlayerState.initialize) {
             Log.d(LOG_TAG, "download the song");
@@ -118,7 +153,9 @@ public class MainActivity extends Activity implements SongDownloaderHandler {
 
     @Override
     public void onSongDownloadProgressUpdated(int progress) {
-        _progressText.setText(progress + "%");
+        String progressStr = progress + "%";
+        Log.d(LOG_TAG, "song downloading progress " + progressStr);
+        _progressText.setText(progressStr);
     }
 
     @Override
@@ -132,6 +169,7 @@ public class MainActivity extends Activity implements SongDownloaderHandler {
     }
 
     private Song createMyOwnSong() {
+        //The song is from my own music server.
         Song song = new Song();
         final String songName = "1.mp3";
         song.setUrl(SONG_SERVER_URL + "/" + "files" + "/" + songName);
@@ -143,6 +181,7 @@ public class MainActivity extends Activity implements SongDownloaderHandler {
     }
 
     private Song createExternalSong() {
+        //The song is from external music server.
         Song song = new Song();
         final String songName = "3246857839526428.mp3";
         song.setUrl("http://m1.music.126.net/yyA6KLa7VUYC0EFwVe-fzA==/" + songName);
@@ -172,8 +211,19 @@ public class MainActivity extends Activity implements SongDownloaderHandler {
     }
 
     private void downloadTheSong() {
-        getSongDownloader().start();
-        setCurrentState(PlayerState.downloading);
+        //check current connectivity status
+        if(!NetworkUtils.isWiFiConnected()) {
+            //notify user to turn on wifi, or failed to start to download
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setMessage("Please connect WiFi network first.");
+            builder.setPositiveButton("OK", null);
+            AlertDialog dialog = builder.create();
+            dialog.show();
+        } else {
+            //start the download
+            getSongDownloader().start();
+            setCurrentState(PlayerState.downloading);
+        }
     }
 
     private void pauseTheSongDownloading() {
